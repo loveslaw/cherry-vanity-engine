@@ -1,5 +1,16 @@
-import asyncio
+import os
 import sys
+
+# Ensure script directory is ALWAYS in sys.path and working directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+if BASE_DIR not in sys.path:
+    sys.path.insert(0, BASE_DIR)
+try:
+    os.chdir(BASE_DIR)
+except Exception:
+    pass
+
+import asyncio
 from ui import render_banner, render_menu, HOT_PINK, BRIGHT_MAGENTA, GREEN, YELLOW, RED, CYAN, WHITE, GRAY, RESET
 from client import FastDiscordClient
 from webhook import WebhookNotifier
