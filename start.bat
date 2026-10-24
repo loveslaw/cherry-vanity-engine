@@ -1,8 +1,8 @@
 @echo off
-title Cherry Vanity Engine (Python - Ultra-Fast)
+title aqxilorcore (Ultra-Fast Vanity Sniper ^& Swapper)
 cd /d "%~dp0"
 
-echo [*] Checking Python environment...
+echo [*] Checking Python environment for aqxilorcore...
 
 :: 1. Try 'py' launcher first (standard Windows Python launcher)
 py -3 --version >nul 2>nul
@@ -10,8 +10,8 @@ if %ERRORLEVEL% equ 0 (
     echo [+] Found Python Launcher (py)
     echo [*] Installing dependencies...
     py -3 -m pip install -r requirements.txt --quiet
-    echo [*] Starting Vanity Engine...
-    py -3 main.py
+    echo [*] Starting aqxilorcore...
+    py -3 vanity.py
     pause
     exit /b 0
 )
@@ -22,8 +22,8 @@ if %ERRORLEVEL% equ 0 (
     echo [+] Found Python
     echo [*] Installing dependencies...
     python -m pip install -r requirements.txt --quiet
-    echo [*] Starting Vanity Engine...
-    python main.py
+    echo [*] Starting aqxilorcore...
+    python vanity.py
     pause
     exit /b 0
 )

@@ -10,8 +10,8 @@ class WebhookNotifier:
             return
 
         payload = {
-            "username": "🍒 Vanity Engine (Python)",
-            "avatar_url": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f352.png",
+            "username": "@/aqxilorcore",
+            "avatar_url": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f525.png",
             "embeds": [embed]
         }
 
@@ -31,7 +31,7 @@ class WebhookNotifier:
                 {"name": "⚡ Reaction Speed", "value": f"`{latency_ms} ms`", "inline": True},
                 {"name": "🏰 Guild ID", "value": f"`{guild_id}`", "inline": True}
             ],
-            "footer": {"text": "Cherry Vanity Engine • Python Ultra-Fast"},
+            "footer": {"text": "aqxilorcore • Ultra-Low Latency"},
         })
 
     async def send_swap_success(self, vanity, source_guild, dest_guild, latency_ms):
@@ -45,7 +45,7 @@ class WebhookNotifier:
                 {"name": "📤 Source Guild", "value": f"`{source_guild}`", "inline": True},
                 {"name": "📥 Dest Guild", "value": f"`{dest_guild}`", "inline": True}
             ],
-            "footer": {"text": "Cherry Vanity Engine • Atomic Swapper"},
+            "footer": {"text": "aqxilorcore • Atomic Swapper"},
         })
 
     async def send_alert(self, title, message, is_error=False):
@@ -53,5 +53,5 @@ class WebhookNotifier:
             "title": f"⚠️ {title}" if is_error else f"ℹ️ {title}",
             "color": 0xFF3333 if is_error else 0x00D9FF,
             "description": message,
-            "footer": {"text": "Cherry Vanity Engine"},
+            "footer": {"text": "aqxilorcore"},
         })

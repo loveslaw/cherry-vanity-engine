@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# Cherry Vanity Engine - Python Linux & Chromebook (Chrome OS) Launcher
+# aqxilorcore - Linux & Chromebook (Chrome OS) Launcher
 cd "$(dirname "$0")"
 
 GREEN='\033[0;32m'
@@ -9,7 +9,7 @@ MAGENTA='\033[0;35m'
 NC='\033[0m'
 
 echo -e "${MAGENTA}====================================================${NC}"
-echo -e "${MAGENTA}   Cherry Vanity Engine (Python Edition)           ${NC}"
+echo -e "${MAGENTA}   aqxilorcore - Ultra-Fast Vanity Engine          ${NC}"
 echo -e "${MAGENTA}====================================================${NC}"
 
 # Check for python3
@@ -24,6 +24,6 @@ fi
 echo -e "${GREEN}[*] Verifying dependencies...${NC}"
 python3 -m pip install -r requirements.txt --quiet --break-system-packages 2>/dev/null || python3 -m pip install -r requirements.txt --quiet
 
-# Launch
-echo -e "${GREEN}[*] Starting Python Vanity Engine...${NC}"
-python3 main.py
+# Launch single-file standalone edition
+echo -e "${GREEN}[*] Starting aqxilorcore...${NC}"
+python3 vanity.py

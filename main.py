@@ -49,7 +49,7 @@ async def main():
     try:
         while True:
             render_banner(author="aqxior")
-            prompt_str = render_menu(MENU_ITEMS, prompt_tag="aqxior")
+            prompt_str = render_menu(MENU_ITEMS, prompt_tag="@/aqxilorcore")
 
             choice = input(prompt_str).strip()
 
@@ -85,7 +85,7 @@ async def main():
                 else:
                     sys.stdout.write(f"\n{YELLOW}[*] Sending test webhook embed... {RESET}")
                     sys.stdout.flush()
-                    await webhook.send_alert("Webhook Speed Test", "Python Cherry Vanity Engine verified! Live ms latency reporting active.")
+                    await webhook.send_alert("Webhook Speed Test", "aqxilorcore verified! Live ms latency reporting active.")
                     print(f"{GREEN}SENT ✅ Check your Discord channel!{RESET}")
                 input(f"\n{GRAY}Press Enter to return to menu...{RESET}")
 
@@ -102,7 +102,7 @@ async def main():
                 input(f"\n{GRAY}Press Enter to return to menu...{RESET}")
 
             elif choice == "10":
-                print(f"\n{BRIGHT_MAGENTA}Exiting Cherry Vanity Engine. Fast claims ahead! 🍒{RESET}\n")
+                print(f"\n{BRIGHT_MAGENTA}Exiting aqxilorcore. Fast claims ahead! ⚡{RESET}\n")
                 await client.close()
                 sys.exit(0)
 

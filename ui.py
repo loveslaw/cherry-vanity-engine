@@ -40,36 +40,37 @@ def render_banner(author="aqxior"):
     pad = max(0, (max_w - len(subtext)) // 2)
     print(" " * pad + f"{Style.BRIGHT}{WHITE}{subtext}{RESET}\n")
 
-def render_menu(items, prompt_tag="aqxior"):
+def _format_col_item(item, col_width=36):
+    if not item:
+        return " " * col_width
+    num = item.get("num", 0)
+    title = item.get("title", "")
+    prefix_len = 7  # 2 spaces + 4 chars "[ X]" + 1 space
+    avail = col_width - prefix_len
+    padded_title = title[:avail].ljust(avail)
+    return f"  {HOT_PINK}[{BRIGHT_MAGENTA}{num:>2}{HOT_PINK}]{RESET} {WHITE}{padded_title}{RESET}"
+
+def render_menu(items, prompt_tag="@/aqxilorcore"):
     mid = (len(items) + 1) // 2
     left_col = items[:mid]
     right_col = items[mid:]
 
     col_width = 36
-    total_inner_width = col_width * 2 + 3
+    inner_width = col_width * 2 + 1  # 36 (left) + 1 (divider) + 36 (right) = 73
 
-    print(f"{HOT_PINK}╭{'─' * total_inner_width}╮{RESET}")
+    # Top border matches inner content length exactly
+    print(f"{HOT_PINK}╭{'─' * inner_width}╮{RESET}")
 
     max_rows = max(len(left_col), len(right_col))
     for i in range(max_rows):
         left_item = left_col[i] if i < len(left_col) else None
         right_item = right_col[i] if i < len(right_col) else None
 
-        if left_item:
-            num_str = f"{HOT_PINK}[{BRIGHT_MAGENTA}{str(left_item['num']).rjust(2)}{HOT_PINK}]{RESET}"
-            title_str = f"{WHITE}{left_item['title'][:col_width - 8].ljust(col_width - 8)}{RESET}"
-            left_str = f"  {num_str} {title_str}"
-        else:
-            left_str = " " * col_width
+        left_str = _format_col_item(left_item, col_width)
+        right_str = _format_col_item(right_item, col_width)
 
-        if right_item:
-            num_str = f"{HOT_PINK}[{BRIGHT_MAGENTA}{str(right_item['num']).rjust(2)}{HOT_PINK}]{RESET}"
-            title_str = f"{WHITE}{right_item['title'][:col_width - 8].ljust(col_width - 8)}{RESET}"
-            right_str = f"  {num_str} {title_str}"
-        else:
-            right_str = " " * col_width
+        print(f"{HOT_PINK}│{RESET}{left_str}{HOT_PINK}│{RESET}{right_str}{HOT_PINK}│{RESET}")
 
-        print(f"{HOT_PINK}│{RESET}{left_str} {HOT_PINK}│{RESET}{right_str} {HOT_PINK}│{RESET}")
-
-    print(f"{HOT_PINK}╰{'─' * total_inner_width}╯{RESET}\n")
+    # Bottom border matches inner content length exactly
+    print(f"{HOT_PINK}╰{'─' * inner_width}╯{RESET}\n")
     return f"{RED}({prompt_tag}){RESET} {WHITE}Option:{RESET} "

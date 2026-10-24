@@ -1,12 +1,12 @@
-# ⚡ Cherry Vanity Engine (Python Edition)
+# ⚡ aqxilorcore
 
-Ultra-Fast, Asynchronous Discord Vanity Sniper & Atomic Swapper written natively in **Python 3** with live terminal speed monitoring, TLS 1.3 keep-alive connection pooling, and the exact magenta UI layout from `aqxior`.
+Ultra-Fast, Asynchronous Discord Vanity Sniper & Atomic Swapper written natively in **Python 3** with live terminal speed monitoring, TLS 1.3 keep-alive connection pooling, and the signature hot-pink / magenta terminal UI.
 
 ---
 
 ## ✨ Features
 
-- **⚡ Millisecond Speed & Reaction Times**:
+- **⚡ Sub-Millisecond Local Execution**:
   - `aiohttp` non-blocking async event loop with persistent `TCPConnector(limit=0, keepalive_timeout=60)`.
   - Sockets are pre-warmed before trigger so zero DNS/SSL handshake latency is incurred.
   - Pre-encoded Byte Buffers in RAM to eliminate JSON serialization overhead.
@@ -25,28 +25,22 @@ Ultra-Fast, Asynchronous Discord Vanity Sniper & Atomic Swapper written natively
 ## 🚀 Quick Setup & Run
 
 ### 🪟 1. Windows Setup
-1. [Python 3.10+](https://python.org/) install karo (make sure "Add Python to PATH" tick ho).
-2. Simply [`start.bat`](start.bat) par double click karo ya terminal me run karo:
+1. Double-click [`start.bat`](start.bat) or run in terminal:
    ```cmd
-   pip install -r requirements.txt
-   python main.py
+   python vanity.py
    ```
+   *(Ya agar python alias error aaye: `py -3 vanity.py`)*
 
 ### 💻 2. Chromebook (Chrome OS) & Linux Setup
-> Detail step-by-step Hindi guide ke liye check karo: [`CHROMEBOOK_SETUP.md`](CHROMEBOOK_SETUP.md)
+> Detail step-by-step Hindi guide: [`CHROMEBOOK_SETUP.md`](CHROMEBOOK_SETUP.md)
 
 1. Chromebook **Settings ➔ Advanced ➔ Developers ➔ Turn on Linux (Crostini)**.
-2. Chromebook Linux Terminal kholo aur run karo:
+2. Chromebook Linux Terminal me run karo:
    ```bash
-   sudo apt update && sudo apt install -y python3 python3-pip python3-aiohttp python3-requests
-   pip install colorama --break-system-packages
+   git clone https://github.com/loveslaw/cherry-vanity-engine.git
+   cd cherry-vanity-engine
+   python3 vanity.py
    ```
-3. Folder me jakar start karo:
-   ```bash
-   chmod +x start.sh
-   ./start.sh
-   ```
-   *(Ya directly `python3 main.py`)*
 
 ---
 
@@ -70,7 +64,7 @@ Ultra-Fast, Asynchronous Discord Vanity Sniper & Atomic Swapper written natively
 │  [ 5] EDIT CONFIGURATION           │  [10] EXIT PROGRAM                   │
 ╰───────────────────────────────────────────────────────────────────────────╯
 
-(aqxior) Option: █
+(@/aqxilorcore) Option: █
 ```
 
 ---
@@ -85,12 +79,7 @@ App khol kar Option `[ 5]` choose karo, ya directly [`config.json`](config.json)
 - `target_guild_id`: Jis server par vanity lagani hai.
 - `source_guild_id`: Jaha se vanity hatani hai.
 - `destination_guild_id`: Jaha nayi vanity shift karni hai.
-- `target_vanity`: Jo vanity claim/swap karni hai (e.g. `cherry`).
+- `target_vanity`: Jo vanity claim/swap karni hai.
 - `webhook`: Discord notification webhook URL.
 
 > ⚠️ **Discord Server Boost Requirement**: Vanity URL lagane ke liye destination server par **Level 3 Boost (14 Boosts)** hona mandatory hai.
-
----
-
-## 🔔 Discord Webhook Alerts
-Jab bhi koi vanity claim ya swap hoti hai, Discord webhook embed me reaction speed (`ms`), vanity link, timestamp, aur proof automatic send ho jata hai!

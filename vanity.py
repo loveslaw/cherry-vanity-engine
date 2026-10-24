@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-⚡ Cherry Vanity Engine (Single-File Standalone Edition)
+⚡ aqxilorcore (Single-File Standalone Edition)
 All-in-One Discord Vanity Sniper & Atomic Swapper with Live Speed Monitor
 Zero internal imports - 100% immune to ModuleNotFoundError!
 """
@@ -126,36 +126,35 @@ def render_banner(author="aqxior"):
     pad = max(0, (max_w - len(subtext)) // 2)
     print(" " * pad + f"{Style.BRIGHT}{WHITE}{subtext}{RESET}\n")
 
-def render_menu(items, prompt_tag="aqxior"):
+def _format_col(item, col_width=36):
+    if not item:
+        return " " * col_width
+    num = item.get("num", 0)
+    title = item.get("title", "")
+    prefix_len = 7  # 2 spaces + 4 chars "[ X]" + 1 space
+    avail = col_width - prefix_len
+    padded = title[:avail].ljust(avail)
+    return f"  {HOT_PINK}[{BRIGHT_MAGENTA}{num:>2}{HOT_PINK}]{RESET} {WHITE}{padded}{RESET}"
+
+def render_menu(items, prompt_tag="@/aqxilorcore"):
     mid = (len(items) + 1) // 2
     left_col = items[:mid]
     right_col = items[mid:]
     col_width = 36
-    total_inner_width = col_width * 2 + 3
+    inner_width = col_width * 2 + 1  # 73 visible characters
 
-    print(f"{HOT_PINK}╭{'─' * total_inner_width}╮{RESET}")
+    print(f"{HOT_PINK}╭{'─' * inner_width}╮{RESET}")
     max_rows = max(len(left_col), len(right_col))
     for i in range(max_rows):
         l_item = left_col[i] if i < len(left_col) else None
         r_item = right_col[i] if i < len(right_col) else None
 
-        if l_item:
-            num_str = f"{HOT_PINK}[{BRIGHT_MAGENTA}{str(l_item['num']).rjust(2)}{HOT_PINK}]{RESET}"
-            title_str = f"{WHITE}{l_item['title'][:col_width - 8].ljust(col_width - 8)}{RESET}"
-            l_str = f"  {num_str} {title_str}"
-        else:
-            l_str = " " * col_width
+        l_str = _format_col(l_item, col_width)
+        r_str = _format_col(r_item, col_width)
 
-        if r_item:
-            num_str = f"{HOT_PINK}[{BRIGHT_MAGENTA}{str(r_item['num']).rjust(2)}{HOT_PINK}]{RESET}"
-            title_str = f"{WHITE}{r_item['title'][:col_width - 8].ljust(col_width - 8)}{RESET}"
-            r_str = f"  {num_str} {title_str}"
-        else:
-            r_str = " " * col_width
+        print(f"{HOT_PINK}│{RESET}{l_str}{HOT_PINK}│{RESET}{r_str}{HOT_PINK}│{RESET}")
 
-        print(f"{HOT_PINK}│{RESET}{l_str} {HOT_PINK}│{RESET}{r_str} {HOT_PINK}│{RESET}")
-
-    print(f"{HOT_PINK}╰{'─' * total_inner_width}╯{RESET}\n")
+    print(f"{HOT_PINK}╰{'─' * inner_width}╯{RESET}\n")
     return f"{RED}({prompt_tag}){RESET} {WHITE}Option:{RESET} "
 
 class FastDiscordClient:
@@ -274,7 +273,7 @@ class WebhookNotifier:
     async def send(self, embed):
         if not self.enabled or not self.url:
             return
-        payload = {"username": "🍒 Vanity Engine", "embeds": [embed]}
+        payload = {"username": "@/aqxilorcore", "embeds": [embed]}
         try:
             async with aiohttp.ClientSession() as s:
                 await s.post(self.url, json=payload)
@@ -443,7 +442,7 @@ async def main():
     try:
         while True:
             render_banner("aqxior")
-            prompt = render_menu(MENU_ITEMS, "aqxior")
+            prompt = render_menu(MENU_ITEMS, prompt_tag="@/aqxilorcore")
             choice = input(prompt).strip()
 
             if choice == "1":
@@ -465,7 +464,7 @@ async def main():
                 run_config_editor(cfg)
             elif choice == "6":
                 print(f"{YELLOW}Testing webhook...{RESET}")
-                await webhook.send({"title": "Cherry Test Alert", "description": "Connection verified!"})
+                await webhook.send({"title": "aqxilorcore Alert", "description": "Connection verified!"})
                 input(f"\n{GRAY}Press Enter...{RESET}")
             elif choice == "7":
                 code = input(f"{CYAN}Enter vanity: {RESET}").strip()
