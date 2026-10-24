@@ -2,6 +2,7 @@ import time
 import json
 import asyncio
 import aiohttp
+from ui import HOT_PINK, BRIGHT_MAGENTA, GREEN, YELLOW, RED, CYAN, WHITE, GRAY, RESET
 
 class FastDiscordClient:
     def __init__(self, config=None):
@@ -54,6 +55,25 @@ class FastDiscordClient:
     async def solve_mfa_ticket(self, token, ticket, methods):
         """Automatically resolves Discord 2FA / Password challenge tickets on the fly"""
         password = self.config.get("tokens", {}).get("account_password")
+        
+        # If password is not configured yet, prompt user directly in terminal!
+        if not password:
+            print(f"\n{YELLOW}[🔐 DISCORD SECURITY CHALLENGE DETECTED]{RESET}")
+            print(f"{WHITE}Discord requires your Account Password to authorize vanity URL changes.{RESET}")
+            try:
+                password = input(f"{CYAN}Enter your Discord Account Password: {RESET}").strip()
+                if password:
+                    self.config["tokens"]["account_password"] = password
+                    # Save to config.json
+                    try:
+                        from config_editor import save_config
+                        save_config(self.config)
+                        print(f"{GREEN}✓ Password saved to config.json! Auto-MFA is now active.{RESET}")
+                    except Exception:
+                        pass
+            except Exception:
+                return None
+
         if not password:
             return None
 
@@ -72,11 +92,18 @@ class FastDiscordClient:
 
         try:
             async with session.post(mfa_url, headers=headers, json=payload) as resp:
+                resp_data = await resp.json()
                 if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("token")
-        except Exception:
-            pass
+                    return resp_data.get("token") or ticket
+                else:
+                    msg = resp_data.get("message", "MFA validation failed")
+                    code = resp_data.get("code")
+                    print(f"{RED}[!] Discord Password Check Failed: {msg} (Code: {code}){RESET}")
+                    if code == 60008:
+                        print(f"{YELLOW}[!] The password you entered is incorrect. Reset it via Option [5].{RESET}")
+                        self.config["tokens"]["account_password"] = ""
+        except Exception as e:
+            print(f"{RED}[!] Error connecting to MFA endpoint: {e}{RESET}")
         return None
 
     async def claim_vanity(self, token, guild_id, vanity_code, mfa_token=None):
@@ -94,6 +121,7 @@ class FastDiscordClient:
         if mfa_token:
             headers["X-Discord-MFA"] = mfa_token
             headers["X-Discord-MFA-Ticket"] = mfa_token
+            headers["Cookie"] = f"__Secure-recent_mfa={mfa_token}"
 
         t0 = time.perf_counter_ns()
         try:
@@ -107,14 +135,18 @@ class FastDiscordClient:
                 except Exception:
                     data = {"raw": raw_text}
 
-                # Auto-solve 60003 Two-Factor challenge if password configured
+                # Auto-solve 60003 Two-Factor challenge if triggered
                 if resp.status == 401 and data.get("code") == 60003 and data.get("mfa") and not mfa_token:
                     mfa_data = data["mfa"]
                     ticket = mfa_data.get("ticket")
                     methods = mfa_data.get("methods", [])
+                    print(f"\n{YELLOW}[*] Two-factor elevation requested by Discord. Solving MFA ticket...{RESET}")
                     solved_mfa = await self.solve_mfa_ticket(token, ticket, methods)
                     if solved_mfa:
+                        print(f"{GREEN}[✓] MFA ticket successfully solved! Resubmitting claim...{RESET}")
                         return await self.claim_vanity(token, guild_id, vanity_code, mfa_token=solved_mfa)
+                    else:
+                        print(f"{RED}[!] Unable to solve MFA ticket. Please check password.{RESET}")
 
                 return {
                     "status": resp.status,
@@ -156,6 +188,7 @@ class FastDiscordClient:
         if mfa_token:
             headers_b["X-Discord-MFA"] = mfa_token
             headers_b["X-Discord-MFA-Ticket"] = mfa_token
+            headers_b["Cookie"] = f"__Secure-recent_mfa={mfa_token}"
 
         t0 = time.perf_counter_ns()
 

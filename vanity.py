@@ -198,18 +198,36 @@ class FastDiscordClient:
     async def solve_mfa_ticket(self, token, ticket, methods):
         password = self.config.get("tokens", {}).get("account_password")
         if not password:
+            print(f"\n{YELLOW}[🔐 DISCORD SECURITY CHALLENGE DETECTED]{RESET}")
+            print(f"{WHITE}Discord requires your Account Password to authorize vanity claiming.{RESET}")
+            try:
+                password = input(f"{CYAN}Enter your Discord Account Password: {RESET}").strip()
+                if password:
+                    self.config["tokens"]["account_password"] = password
+                    save_config(self.config)
+                    print(f"{GREEN}✓ Password saved to config.json! Auto-MFA is now permanently active.{RESET}")
+            except Exception:
+                return None
+
+        if not password:
             return None
+
         session = await self.get_session()
         mfa_url = "https://discord.com/api/v9/mfa/finish"
         payload = {"mfa_type": "password", "data": password, "ticket": ticket}
         headers = {"Authorization": token, "Content-Type": "application/json", "User-Agent": self.user_agent}
         try:
             async with session.post(mfa_url, headers=headers, json=payload) as r:
+                resp_data = await r.json()
                 if r.status == 200:
-                    d = await r.json()
-                    return d.get("token")
-        except Exception:
-            pass
+                    return resp_data.get("token") or ticket
+                else:
+                    msg = resp_data.get("message", "MFA validation failed")
+                    print(f"{RED}[!] Discord Password Check Failed: {msg}{RESET}")
+                    if resp_data.get("code") == 60008:
+                        self.config["tokens"]["account_password"] = ""
+        except Exception as e:
+            print(f"{RED}[!] MFA connection error: {e}{RESET}")
         return None
 
     async def claim_vanity(self, token, guild_id, vanity_code, mfa_token=None):
@@ -226,6 +244,7 @@ class FastDiscordClient:
         if mfa_token:
             headers["X-Discord-MFA"] = mfa_token
             headers["X-Discord-MFA-Ticket"] = mfa_token
+            headers["Cookie"] = f"__Secure-recent_mfa={mfa_token}"
 
         t0 = time.perf_counter_ns()
         try:
@@ -240,13 +259,13 @@ class FastDiscordClient:
                     mfa_data = data["mfa"]
                     ticket = mfa_data.get("ticket")
                     methods = mfa_data.get("methods", [])
-                    print(f"\n{YELLOW}[*] Two-Factor challenge detected. Auto-resolving ticket with account password...{RESET}")
+                    print(f"\n{YELLOW}[*] Two-factor elevation required by Discord. Solving MFA ticket...{RESET}")
                     solved_mfa = await self.solve_mfa_ticket(token, ticket, methods)
                     if solved_mfa:
-                        print(f"{GREEN}[✓] 2FA/Password Verified! Resubmitting claim...{RESET}")
+                        print(f"{GREEN}[✓] MFA ticket solved! Resubmitting claim...{RESET}")
                         return await self.claim_vanity(token, guild_id, vanity_code, mfa_token=solved_mfa)
                     else:
-                        print(f"{RED}[!] Account Password not set or invalid! Set it in Option [5] to auto-bypass 2FA.{RESET}")
+                        print(f"{RED}[!] Unable to solve MFA ticket. Please check your password.{RESET}")
 
                 return {"status": r.status, "success": 200 <= r.status < 300, "latency_ms": lat, "data": data}
         except Exception as e:
@@ -446,7 +465,7 @@ def run_config_editor(cfg):
         elif opt == "2":
             v = input(f"{CYAN}Enter Account Password (for 2FA bypass): {RESET}").strip()
             tokens["account_password"] = v; save_config(cfg)
-            print(f"{GREEN}✓ Password saved!{RESET}")
+            print(f"{GREEN}✓ Password saved! Auto-MFA is now active.{RESET}")
         elif opt == "3":
             v = input(f"{CYAN}Enter Token A: {RESET}").strip()
             if v: tokens["swapper_token_a"] = v; save_config(cfg)
