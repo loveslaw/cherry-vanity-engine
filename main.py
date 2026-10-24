@@ -48,6 +48,10 @@ async def main():
 
     try:
         while True:
+            fresh = load_config()
+            if fresh:
+                config.update(fresh)
+                client.config = config
             render_banner(author="aqxior")
             prompt_str = render_menu(MENU_ITEMS, prompt_tag="aqxilorcore")
 

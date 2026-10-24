@@ -195,9 +195,46 @@ class FastDiscordClient:
         except Exception:
             return None
 
+    def _extract_mfa_from_config(self):
+        try:
+            fresh = load_config()
+            if fresh:
+                self.config = fresh
+        except Exception:
+            pass
+
+        tokens = self.config.get("tokens", {}) if isinstance(self.config, dict) else {}
+        candidates = [
+            tokens.get("two_factor_secret"),
+            tokens.get("2fa_secret"),
+            tokens.get("totp_secret"),
+            tokens.get("secret_key"),
+            tokens.get("two_factor"),
+            tokens.get("2fa"),
+            tokens.get("account_password"),
+            self.config.get("two_factor_secret"),
+            self.config.get("2fa_secret"),
+            self.config.get("secret_key"),
+        ]
+        totp_secret = None
+        password = None
+        for c in candidates:
+            if c and isinstance(c, str):
+                clean = c.strip().replace(" ", "").upper()
+                if len(clean) >= 16:
+                    try:
+                        import pyotp
+                        pyotp.TOTP(clean).now()
+                        totp_secret = clean
+                        break
+                    except Exception:
+                        pass
+        if not totp_secret:
+            password = tokens.get("account_password") or self.config.get("account_password")
+        return totp_secret, password
+
     async def solve_mfa_ticket(self, token, ticket, methods):
-        totp_secret = self.config.get("tokens", {}).get("two_factor_secret")
-        password = self.config.get("tokens", {}).get("account_password")
+        totp_secret, password = self._extract_mfa_from_config()
         
         session = await self.get_session()
         mfa_url = "https://discord.com/api/v9/mfa/finish"
@@ -208,8 +245,9 @@ class FastDiscordClient:
             if totp_secret:
                 try:
                     import pyotp
-                    code = pyotp.TOTP(totp_secret.replace(" ", "")).now()
+                    code = pyotp.TOTP(totp_secret).now()
                     payload = {"mfa_type": "totp", "data": code, "ticket": ticket}
+                    print(f"{CYAN}[*] Auto-solving 2FA challenge via pyotp (Code: {code})...{RESET}")
                     async with session.post(mfa_url, headers=headers, json=payload) as resp:
                         resp_data = await resp.json()
                         if resp.status == 200:
@@ -223,6 +261,7 @@ class FastDiscordClient:
         if password:
             payload = {"mfa_type": "password", "data": password, "ticket": ticket}
             try:
+                print(f"{CYAN}[*] Auto-solving MFA challenge with saved password...{RESET}")
                 async with session.post(mfa_url, headers=headers, json=payload) as resp:
                     resp_data = await resp.json()
                     if resp.status == 200:
@@ -550,6 +589,10 @@ async def main():
 
     try:
         while True:
+            fresh_cfg = load_config()
+            if fresh_cfg:
+                cfg.update(fresh_cfg)
+                client.config = cfg
             render_banner("aqxior")
             prompt = render_menu(MENU_ITEMS, prompt_tag="aqxilorcore")
             choice = input(prompt).strip()
