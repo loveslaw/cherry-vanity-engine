@@ -26,9 +26,11 @@ def mask_token(token):
         return token or "Not Set"
     return token[:6] + "••••••••••••••••••••" + token[-4:]
 
-def mask_password(pwd):
+def mask_password(pwd, totp=None):
+    if totp:
+        return f"2FA Active (pyotp TOTP ✅)"
     if not pwd:
-        return "Not Set (Required if Discord asks 2FA)"
+        return "Not Set (2FA or Password)"
     return "••••••••••••"
 
 def run_config_editor():
@@ -47,7 +49,7 @@ def run_config_editor():
         print(f"{HOT_PINK}│{RESET}  {BRIGHT_MAGENTA}⚙️  CONFIG EDITOR (Live Updates to config.json){RESET}{' ' * 29}{HOT_PINK}│{RESET}")
         print(f"{HOT_PINK}├─────────────────────────────────────────────────────────────────────────────┤{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 1] Sniper Token        : {GRAY}{mask_token(tokens.get('sniper_token'))}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 2] Account Password    : {YELLOW}{mask_password(tokens.get('account_password'))}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 2] 2FA Secret / Password: {YELLOW}{mask_password(tokens.get('account_password'), tokens.get('two_factor_secret'))}{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 3] Swapper Token A     : {GRAY}{mask_token(tokens.get('swapper_token_a'))}{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 4] Swapper Token B     : {GRAY}{mask_token(tokens.get('swapper_token_b'))}{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 5] Target Guild ID     : {CYAN}{guilds.get('target_guild_id', 'Not Set')}{RESET}")
@@ -69,10 +71,20 @@ def run_config_editor():
                 save_config(config)
                 print(f"{GREEN}✓ Saved!{RESET}")
         elif opt == "2":
-            val = input(f"{CYAN}Enter Discord Account Password (for 2FA/MFA bypass): {RESET}").strip()
-            tokens["account_password"] = val
-            save_config(config)
-            print(f"{GREEN}✓ Password Saved! (Auto-MFA is now active){RESET}")
+            print(f"\n{CYAN}Choose MFA method to configure:{RESET}")
+            print(f"  [1] 2FA Secret Key (Google Authenticator TOTP - Recommended ⚡)")
+            print(f"  [2] Account Password")
+            m_opt = input(f"{WHITE}Select (1/2): {RESET}").strip()
+            if m_opt == "1":
+                val = input(f"{CYAN}Enter 2FA Secret Key (from Discord Settings): {RESET}").strip()
+                tokens["two_factor_secret"] = val
+                save_config(config)
+                print(f"{GREEN}✓ 2FA Secret Key Saved! (pyotp Auto-MFA is now active ⚡){RESET}")
+            else:
+                val = input(f"{CYAN}Enter Discord Account Password: {RESET}").strip()
+                tokens["account_password"] = val
+                save_config(config)
+                print(f"{GREEN}✓ Password Saved! (Auto-MFA is now active){RESET}")
         elif opt == "3":
             val = input(f"{CYAN}Enter New Swapper Token A (Source): {RESET}").strip()
             if val:

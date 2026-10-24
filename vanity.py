@@ -196,38 +196,79 @@ class FastDiscordClient:
             return None
 
     async def solve_mfa_ticket(self, token, ticket, methods):
+        totp_secret = self.config.get("tokens", {}).get("two_factor_secret")
         password = self.config.get("tokens", {}).get("account_password")
-        if not password:
-            print(f"\n{YELLOW}[🔐 DISCORD SECURITY CHALLENGE DETECTED]{RESET}")
-            print(f"{WHITE}Discord requires your Account Password to authorize vanity claiming.{RESET}")
-            try:
-                password = input(f"{CYAN}Enter your Discord Account Password: {RESET}").strip()
-                if password:
-                    self.config["tokens"]["account_password"] = password
-                    save_config(self.config)
-                    print(f"{GREEN}✓ Password saved to config.json! Auto-MFA is now permanently active.{RESET}")
-            except Exception:
-                return None
-
-        if not password:
-            return None
-
+        
         session = await self.get_session()
         mfa_url = "https://discord.com/api/v9/mfa/finish"
-        payload = {"mfa_type": "password", "data": password, "ticket": ticket}
         headers = {"Authorization": token, "Content-Type": "application/json", "User-Agent": self.user_agent}
+
+        method_types = [m.get("type") if isinstance(m, dict) else m for m in (methods or [])]
+        if "totp" in method_types or totp_secret:
+            if totp_secret:
+                try:
+                    import pyotp
+                    code = pyotp.TOTP(totp_secret.replace(" ", "")).now()
+                    payload = {"mfa_type": "totp", "data": code, "ticket": ticket}
+                    async with session.post(mfa_url, headers=headers, json=payload) as resp:
+                        resp_data = await resp.json()
+                        if resp.status == 200:
+                            print(f"{GREEN}[✓] 2FA TOTP Verified instantly via pyotp (Code: {code})!{RESET}")
+                            return resp_data.get("token") or ticket
+                        else:
+                            print(f"{RED}[!] TOTP Challenge Failed: {resp_data.get('message')}{RESET}")
+                except Exception as e:
+                    print(f"{RED}[!] pyotp error: {e}{RESET}")
+
+        if password:
+            payload = {"mfa_type": "password", "data": password, "ticket": ticket}
+            try:
+                async with session.post(mfa_url, headers=headers, json=payload) as resp:
+                    resp_data = await resp.json()
+                    if resp.status == 200:
+                        print(f"{GREEN}[✓] Password Verified! MFA Token received.{RESET}")
+                        return resp_data.get("token") or ticket
+                    else:
+                        code = resp_data.get("code")
+                        print(f"{RED}[!] Discord Password Check Failed: {resp_data.get('message')} (Code: {code}){RESET}")
+            except Exception as e:
+                print(f"{RED}[!] Error connecting to MFA endpoint: {e}{RESET}")
+
+        print(f"\n{YELLOW}[🔐 DISCORD 2FA / SECURITY CHALLENGE DETECTED]{RESET}")
+        print(f"{WHITE}Discord requires MFA elevation to authorize vanity URL changes.{RESET}")
+        print(f"{GRAY}Allowed methods: {method_types}{RESET}")
         try:
-            async with session.post(mfa_url, headers=headers, json=payload) as r:
-                resp_data = await r.json()
-                if r.status == 200:
+            val = input(f"{CYAN}Enter 2FA Secret Key, 6-digit Code, or Account Password: {RESET}").strip()
+            if not val:
+                return None
+            
+            clean = val.replace(" ", "")
+            if clean.isdigit() and len(clean) == 6:
+                payload = {"mfa_type": "totp", "data": clean, "ticket": ticket}
+            elif "totp" in method_types and len(clean) in (16, 26, 32):
+                import pyotp
+                self.config["tokens"]["two_factor_secret"] = clean
+                code = pyotp.TOTP(clean).now()
+                payload = {"mfa_type": "totp", "data": code, "ticket": ticket}
+            else:
+                self.config["tokens"]["account_password"] = val
+                payload = {"mfa_type": "password", "data": val, "ticket": ticket}
+
+            try:
+                save_config(self.config)
+            except Exception:
+                pass
+
+            async with session.post(mfa_url, headers=headers, json=payload) as resp:
+                resp_data = await resp.json()
+                if resp.status == 200:
+                    print(f"{GREEN}[✓] Challenge solved! Vanity claiming now...{RESET}")
                     return resp_data.get("token") or ticket
                 else:
-                    msg = resp_data.get("message", "MFA validation failed")
-                    print(f"{RED}[!] Discord Password Check Failed: {msg}{RESET}")
-                    if resp_data.get("code") == 60008:
-                        self.config["tokens"]["account_password"] = ""
+                    print(f"{RED}[!] Challenge failed: {resp_data}{RESET}")
         except Exception as e:
-            print(f"{RED}[!] MFA connection error: {e}{RESET}")
+            print(f"{RED}[!] Prompt error: {e}{RESET}")
+
         return None
 
     async def claim_vanity(self, token, guild_id, vanity_code, mfa_token=None):
