@@ -1,4 +1,4 @@
-# 💻 Chromebook (Chrome OS) Setup Guide - Cherry Vanity Engine
+# 💻 Chromebook (Chrome OS) Setup Guide - AHME Vanity Engine
 
 Ye guide unke liye hai jo **Chromebook / Chrome OS** par ye tool run karna chahte hain. Chromebook par Linux (Crostini) support hota hai, jisse tum directly Python scripts run kar sakte ho bina kisi problem ke!
 
@@ -17,10 +17,10 @@ Agar tumhare Chromebook par Linux pehle se ON nahi hai:
 
 ## 📌 STEP 2: Zip File ko Chromebook me daalo
 
-1. Jo zip file tumhe mili hai (`cherry-vanity-engine-py.zip`), usko download karo.
+1. Jo zip file tumhe mili hai (`AHME.zip`), usko download karo.
 2. Chromebook ki **Files app** kholo.
-3. `cherry-vanity-engine-py.zip` par double-click karo (Chromebook isko mount kar deta hai).
-4. Uske andar ke folder `cherry-vanity-engine-py` ko drag karke left side me **"Linux files"** me drop/copy kar do!
+3. `AHME.zip` par double-click karo (Chromebook isko mount kar deta hai).
+4. Uske andar ke folder `AHME` ko drag karke left side me **"Linux files"** me drop/copy kar do!
 
 ---
 
@@ -31,12 +31,12 @@ Ab Chromebook ka **Terminal** app kholo aur ye commands copy-paste karo (ek ek k
 ### 1. Python & Required Packages Install karo (Sirf ek baar karna hai):
 ```bash
 sudo apt update && sudo apt install -y python3 python3-pip python3-aiohttp python3-requests
-pip install colorama --break-system-packages
+pip install colorama pyotp --break-system-packages
 ```
 
 ### 2. Project Folder me jaao:
 ```bash
-cd ~/cherry-vanity-engine-py
+cd ~/AHME
 ```
 
 ### 3. Launcher ko executable permission do:
@@ -78,4 +78,4 @@ Tool start hone ke baad:
 
 ---
 
-Enjoy ultra-low latency vanity sniping & swapping on your Chromebook! 🍒⚡
+Enjoy ultra-low latency vanity sniping & swapping on your Chromebook! ⚡

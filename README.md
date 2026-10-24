@@ -37,8 +37,8 @@ Ultra-Fast, Asynchronous Discord Vanity Sniper & Atomic Swapper written natively
 1. Chromebook **Settings ➔ Advanced ➔ Developers ➔ Turn on Linux (Crostini)**.
 2. Chromebook Linux Terminal me run karo:
    ```bash
-   git clone https://github.com/loveslaw/cherry-vanity-engine.git
-   cd cherry-vanity-engine
+   git clone https://github.com/loveslaw/AHME.git
+   cd AHME
    python3 vanity.py
    ```
 

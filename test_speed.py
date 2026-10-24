@@ -6,7 +6,7 @@ from ui import render_banner, render_menu
 from speed_monitor import SpeedMonitor
 
 async def run_tests():
-    print("🧪 [PYTHON TEST SUITE] Verifying Cherry Vanity Engine (Python Edition)...\n")
+    print("🧪 [PYTHON TEST SUITE] Verifying AHME Vanity Engine (Python Edition)...\n")
 
     # Test 1: Config Load
     config = load_config()
