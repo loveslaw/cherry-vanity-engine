@@ -107,17 +107,19 @@ class FastDiscordClient:
             if not val:
                 return None
             
-            clean = val.replace(" ", "")
+            clean = val.replace(" ", "").upper()
             if clean.isdigit() and len(clean) == 6:
                 payload = {"mfa_type": "totp", "data": clean, "ticket": ticket}
-            elif "totp" in method_types and len(clean) in (16, 26, 32):
-                import pyotp
-                self.config["tokens"]["two_factor_secret"] = clean
-                code = pyotp.TOTP(clean).now()
-                payload = {"mfa_type": "totp", "data": code, "ticket": ticket}
             else:
-                self.config["tokens"]["account_password"] = val
-                payload = {"mfa_type": "password", "data": val, "ticket": ticket}
+                try:
+                    import pyotp
+                    code = pyotp.TOTP(clean).now()
+                    self.config["tokens"]["two_factor_secret"] = clean
+                    payload = {"mfa_type": "totp", "data": code, "ticket": ticket}
+                    print(f"{GREEN}[*] Recognized 2FA Secret Key! Generated live TOTP: {code}{RESET}")
+                except Exception:
+                    self.config["tokens"]["account_password"] = val
+                    payload = {"mfa_type": "password", "data": val, "ticket": ticket}
 
             try:
                 from config_editor import save_config

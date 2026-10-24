@@ -77,7 +77,7 @@ def run_config_editor():
             m_opt = input(f"{WHITE}Select (1/2): {RESET}").strip()
             if m_opt == "1":
                 val = input(f"{CYAN}Enter 2FA Secret Key (from Discord Settings): {RESET}").strip()
-                tokens["two_factor_secret"] = val
+                tokens["two_factor_secret"] = val.replace(" ", "").upper()
                 save_config(config)
                 print(f"{GREEN}✓ 2FA Secret Key Saved! (pyotp Auto-MFA is now active ⚡){RESET}")
             else:
