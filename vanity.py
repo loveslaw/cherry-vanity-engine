@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 ⚡ aqxilorcore (Single-File Standalone Edition)
-All-in-One Discord Vanity Sniper & Atomic Swapper with Live Speed Monitor
+All-in-One Discord Vanity Sniper & Atomic Swapper with Live Speed Monitor & Auto-MFA Resolver
 Zero internal imports - 100% immune to ModuleNotFoundError!
 """
 
@@ -60,6 +60,7 @@ CONFIG_PATH = os.path.join(BASE_DIR, "config.json")
 DEFAULT_CONFIG = {
     "tokens": {
         "sniper_token": "YOUR_DISCORD_TOKEN_HERE",
+        "account_password": "",
         "swapper_token_a": "SOURCE_SERVER_TOKEN_HERE",
         "swapper_token_b": "DESTINATION_SERVER_TOKEN_HERE"
     },
@@ -69,7 +70,7 @@ DEFAULT_CONFIG = {
         "destination_guild_id": "DESTINATION_SERVER_ID"
     },
     "vanity": {
-        "target_vanity": "cool",
+        "target_vanity": "aqxilorcore",
         "dummy_vanity": "temp_swap_9821"
     },
     "webhook": {
@@ -106,6 +107,11 @@ def mask_token(token):
         return token or "Not Set"
     return token[:6] + "••••••••••••••••••••" + token[-4:]
 
+def mask_password(pwd):
+    if not pwd:
+        return "Not Set (Required if Discord asks 2FA)"
+    return "••••••••••••"
+
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
@@ -136,7 +142,7 @@ def _format_col(item, col_width=36):
     padded = title[:avail].ljust(avail)
     return f"  {HOT_PINK}[{BRIGHT_MAGENTA}{num:>2}{HOT_PINK}]{RESET} {WHITE}{padded}{RESET}"
 
-def render_menu(items, prompt_tag="@/aqxilorcore"):
+def render_menu(items, prompt_tag="aqxilorcore"):
     mid = (len(items) + 1) // 2
     left_col = items[:mid]
     right_col = items[mid:]
@@ -189,7 +195,24 @@ class FastDiscordClient:
         except Exception:
             return None
 
-    async def claim_vanity(self, token, guild_id, vanity_code):
+    async def solve_mfa_ticket(self, token, ticket, methods):
+        password = self.config.get("tokens", {}).get("account_password")
+        if not password:
+            return None
+        session = await self.get_session()
+        mfa_url = "https://discord.com/api/v9/mfa/finish"
+        payload = {"mfa_type": "password", "data": password, "ticket": ticket}
+        headers = {"Authorization": token, "Content-Type": "application/json", "User-Agent": self.user_agent}
+        try:
+            async with session.post(mfa_url, headers=headers, json=payload) as r:
+                if r.status == 200:
+                    d = await r.json()
+                    return d.get("token")
+        except Exception:
+            pass
+        return None
+
+    async def claim_vanity(self, token, guild_id, vanity_code, mfa_token=None):
         session = await self.get_session()
         url = f"https://discord.com/api/v9/guilds/{guild_id}/vanity-url"
         raw_body = b'{"code":"' + vanity_code.encode("utf-8") + b'"}'
@@ -197,8 +220,13 @@ class FastDiscordClient:
             "Authorization": token,
             "Content-Type": "application/json",
             "Content-Length": str(len(raw_body)),
+            "User-Agent": self.user_agent,
             "Connection": "keep-alive"
         }
+        if mfa_token:
+            headers["X-Discord-MFA"] = mfa_token
+            headers["X-Discord-MFA-Ticket"] = mfa_token
+
         t0 = time.perf_counter_ns()
         try:
             async with session.patch(url, data=raw_body, headers=headers) as r:
@@ -206,6 +234,20 @@ class FastDiscordClient:
                 lat = round((time.perf_counter_ns() - t0) / 1_000_000, 2)
                 try: data = json.loads(text)
                 except Exception: data = {"raw": text}
+
+                # Auto-solve 60003 Two-Factor challenge
+                if r.status == 401 and data.get("code") == 60003 and data.get("mfa") and not mfa_token:
+                    mfa_data = data["mfa"]
+                    ticket = mfa_data.get("ticket")
+                    methods = mfa_data.get("methods", [])
+                    print(f"\n{YELLOW}[*] Two-Factor challenge detected. Auto-resolving ticket with account password...{RESET}")
+                    solved_mfa = await self.solve_mfa_ticket(token, ticket, methods)
+                    if solved_mfa:
+                        print(f"{GREEN}[✓] 2FA/Password Verified! Resubmitting claim...{RESET}")
+                        return await self.claim_vanity(token, guild_id, vanity_code, mfa_token=solved_mfa)
+                    else:
+                        print(f"{RED}[!] Account Password not set or invalid! Set it in Option [5] to auto-bypass 2FA.{RESET}")
+
                 return {"status": r.status, "success": 200 <= r.status < 300, "latency_ms": lat, "data": data}
         except Exception as e:
             return {"status": 500, "success": False, "latency_ms": round((time.perf_counter_ns() - t0) / 1_000_000, 2), "error": str(e)}
@@ -256,7 +298,7 @@ class FastDiscordClient:
         session = await self.get_session()
         url = f"https://discord.com/api/v9/guilds/{guild_id}?with_counts=true"
         try:
-            async with session.get(url, headers={"Authorization": token}) as r:
+            async with session.get(url, headers={"Authorization": token, "User-Agent": self.user_agent}) as r:
                 return {"status": r.status, "data": await r.json()}
         except Exception as e:
             return {"status": 500, "error": str(e)}
@@ -273,7 +315,7 @@ class WebhookNotifier:
     async def send(self, embed):
         if not self.enabled or not self.url:
             return
-        payload = {"username": "@/aqxilorcore", "embeds": [embed]}
+        payload = {"username": "aqxilorcore", "embeds": [embed]}
         try:
             async with aiohttp.ClientSession() as s:
                 await s.post(self.url, json=payload)
@@ -386,36 +428,41 @@ def run_config_editor(cfg):
         print(f"{HOT_PINK}│{RESET}  {BRIGHT_MAGENTA}⚙️  CONFIG EDITOR (Saves to config.json){RESET}{' ' * 33}{HOT_PINK}│{RESET}")
         print(f"{HOT_PINK}├─────────────────────────────────────────────────────────────────────────────┤{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 1] Sniper Token        : {GRAY}{mask_token(tokens.get('sniper_token'))}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 2] Swapper Token A     : {GRAY}{mask_token(tokens.get('swapper_token_a'))}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 3] Swapper Token B     : {GRAY}{mask_token(tokens.get('swapper_token_b'))}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 4] Target Guild ID     : {CYAN}{guilds.get('target_guild_id')}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 5] Source Guild ID     : {CYAN}{guilds.get('source_guild_id')}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 6] Destination Guild ID: {CYAN}{guilds.get('destination_guild_id')}{RESET}")
-        print(f"{HOT_PINK}│{RESET}  [ 7] Target Vanity Code  : {GREEN}discord.gg/{vanity.get('target_vanity')}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 2] Account Password    : {YELLOW}{mask_password(tokens.get('account_password'))}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 3] Swapper Token A     : {GRAY}{mask_token(tokens.get('swapper_token_a'))}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 4] Swapper Token B     : {GRAY}{mask_token(tokens.get('swapper_token_b'))}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 5] Target Guild ID     : {CYAN}{guilds.get('target_guild_id')}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 6] Source Guild ID     : {CYAN}{guilds.get('source_guild_id')}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 7] Destination Guild ID: {CYAN}{guilds.get('destination_guild_id')}{RESET}")
+        print(f"{HOT_PINK}│{RESET}  [ 8] Target Vanity Code  : {GREEN}discord.gg/{vanity.get('target_vanity')}{RESET}")
         print(f"{HOT_PINK}│{RESET}  [ 0] Back to Main Menu")
         print(f"{HOT_PINK}╰─────────────────────────────────────────────────────────────────────────────╯{RESET}\n")
 
-        opt = input(f"{RED}(config){RESET} {WHITE}Select item (0-7): {RESET}").strip()
+        opt = input(f"{RED}(config){RESET} {WHITE}Select item (0-8): {RESET}").strip()
         if opt == "0": break
         elif opt == "1":
             v = input(f"{CYAN}Enter Sniper Token: {RESET}").strip()
             if v: tokens["sniper_token"] = v; save_config(cfg)
         elif opt == "2":
+            v = input(f"{CYAN}Enter Account Password (for 2FA bypass): {RESET}").strip()
+            tokens["account_password"] = v; save_config(cfg)
+            print(f"{GREEN}✓ Password saved!{RESET}")
+        elif opt == "3":
             v = input(f"{CYAN}Enter Token A: {RESET}").strip()
             if v: tokens["swapper_token_a"] = v; save_config(cfg)
-        elif opt == "3":
+        elif opt == "4":
             v = input(f"{CYAN}Enter Token B: {RESET}").strip()
             if v: tokens["swapper_token_b"] = v; save_config(cfg)
-        elif opt == "4":
+        elif opt == "5":
             v = input(f"{CYAN}Enter Target Guild ID: {RESET}").strip()
             if v: guilds["target_guild_id"] = v; save_config(cfg)
-        elif opt == "5":
+        elif opt == "6":
             v = input(f"{CYAN}Enter Source Guild ID: {RESET}").strip()
             if v: guilds["source_guild_id"] = v; save_config(cfg)
-        elif opt == "6":
+        elif opt == "7":
             v = input(f"{CYAN}Enter Destination Guild ID: {RESET}").strip()
             if v: guilds["destination_guild_id"] = v; save_config(cfg)
-        elif opt == "7":
+        elif opt == "8":
             v = input(f"{CYAN}Enter Vanity Code: {RESET}").strip()
             if v: vanity["target_vanity"] = v.replace("https://discord.gg/", "").replace("discord.gg/", ""); save_config(cfg)
 
@@ -442,7 +489,7 @@ async def main():
     try:
         while True:
             render_banner("aqxior")
-            prompt = render_menu(MENU_ITEMS, prompt_tag="@/aqxilorcore")
+            prompt = render_menu(MENU_ITEMS, prompt_tag="aqxilorcore")
             choice = input(prompt).strip()
 
             if choice == "1":

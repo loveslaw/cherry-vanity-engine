@@ -10,7 +10,7 @@ class WebhookNotifier:
             return
 
         payload = {
-            "username": "@/aqxilorcore",
+            "username": "aqxilorcore",
             "avatar_url": "https://raw.githubusercontent.com/twitter/twemoji/master/assets/72x72/1f525.png",
             "embeds": [embed]
         }

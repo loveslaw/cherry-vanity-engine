@@ -50,7 +50,7 @@ def _format_col_item(item, col_width=36):
     padded_title = title[:avail].ljust(avail)
     return f"  {HOT_PINK}[{BRIGHT_MAGENTA}{num:>2}{HOT_PINK}]{RESET} {WHITE}{padded_title}{RESET}"
 
-def render_menu(items, prompt_tag="@/aqxilorcore"):
+def render_menu(items, prompt_tag="aqxilorcore"):
     mid = (len(items) + 1) // 2
     left_col = items[:mid]
     right_col = items[mid:]

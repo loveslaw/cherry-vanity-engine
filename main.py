@@ -49,7 +49,7 @@ async def main():
     try:
         while True:
             render_banner(author="aqxior")
-            prompt_str = render_menu(MENU_ITEMS, prompt_tag="@/aqxilorcore")
+            prompt_str = render_menu(MENU_ITEMS, prompt_tag="aqxilorcore")
 
             choice = input(prompt_str).strip()
 

@@ -1,25 +1,26 @@
 {
-  "tokens": {
-    "sniper_token": "YOUR_DISCORD_TOKEN_HERE",
-    "swapper_token_a": "SOURCE_SERVER_TOKEN_HERE",
-    "swapper_token_b": "DESTINATION_SERVER_TOKEN_HERE"
-  },
-  "guilds": {
-    "target_guild_id": "YOUR_TARGET_SERVER_ID",
-    "source_guild_id": "SOURCE_SERVER_ID",
-    "destination_guild_id": "DESTINATION_SERVER_ID"
-  },
-  "vanity": {
-    "target_vanity": "cool",
-    "dummy_vanity": "temp_swap_9821"
-  },
-  "webhook": {
-    "url": "",
-    "enabled": true
-  },
-  "settings": {
-    "pre_warm_connections": true,
-    "keep_alive_timeout": 60,
-    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
-  }
+    "tokens":  {
+                   "sniper_token":  "YOUR_DISCORD_TOKEN_HERE",
+                   "account_password":  "",
+                   "swapper_token_a":  "SOURCE_SERVER_TOKEN_HERE",
+                   "swapper_token_b":  "DESTINATION_SERVER_TOKEN_HERE"
+               },
+    "guilds":  {
+                   "target_guild_id":  "1563409836794839161",
+                   "source_guild_id":  "SOURCE_SERVER_ID",
+                   "destination_guild_id":  "DESTINATION_SERVER_ID"
+               },
+    "vanity":  {
+                   "target_vanity":  "aqxilorcore",
+                   "dummy_vanity":  "temp_swap_9821"
+               },
+    "webhook":  {
+                    "url":  "YOUR_WEBHOOK_URL_HERE",
+                    "enabled":  true
+                },
+    "settings":  {
+                     "pre_warm_connections":  true,
+                     "keep_alive_timeout":  60,
+                     "user_agent":  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+                 }
 }

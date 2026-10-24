@@ -34,7 +34,7 @@ async def inspect_guild(client, config):
         print(f"{RED}Failed to inspect guild (HTTP {res.get('status')}): {res.get('data') or res.get('error')}{RESET}")
 
 async def check_vanity_interactive(client):
-    code = input(f"\n{CYAN}Enter Vanity Code to check (e.g. cherry): {RESET}").strip()
+    code = input(f"\n{CYAN}Enter Vanity Code to check (e.g. aqxilorcore): {RESET}").strip()
     clean_code = code.replace("https://discord.gg/", "").replace("discord.gg/", "").strip()
     if not clean_code:
         return

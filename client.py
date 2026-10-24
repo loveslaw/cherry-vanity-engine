@@ -15,7 +15,6 @@ class FastDiscordClient:
 
     async def get_session(self):
         if self.session is None or self.session.closed:
-            # Ultra-low latency TCP connector: limit=0 (no queueing), ttl_dns_cache=300
             connector = aiohttp.TCPConnector(
                 limit=0,
                 ttl_dns_cache=300,
@@ -29,7 +28,6 @@ class FastDiscordClient:
         return self.session
 
     async def pre_warm(self):
-        """Pre-warms TCP & TLS 1.3 socket to eliminate handshake latency on trigger"""
         t0 = time.perf_counter_ns()
         session = await self.get_session()
         try:
@@ -43,7 +41,6 @@ class FastDiscordClient:
             return {"success": False, "error": str(e)}
 
     async def ping_discord(self):
-        """Measures instant network round-trip time in milliseconds"""
         t0 = time.perf_counter_ns()
         session = await self.get_session()
         try:
@@ -54,19 +51,49 @@ class FastDiscordClient:
         except Exception:
             return None
 
-    async def claim_vanity(self, token, guild_id, vanity_code):
-        """Dispatches instant PATCH request to claim vanity URL with sub-millisecond local timer"""
+    async def solve_mfa_ticket(self, token, ticket, methods):
+        """Automatically resolves Discord 2FA / Password challenge tickets on the fly"""
+        password = self.config.get("tokens", {}).get("account_password")
+        if not password:
+            return None
+
+        session = await self.get_session()
+        mfa_url = "https://discord.com/api/v9/mfa/finish"
+        payload = {
+            "mfa_type": "password",
+            "data": password,
+            "ticket": ticket
+        }
+        headers = {
+            "Authorization": token,
+            "Content-Type": "application/json",
+            "User-Agent": self.user_agent
+        }
+
+        try:
+            async with session.post(mfa_url, headers=headers, json=payload) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    return data.get("token")
+        except Exception:
+            pass
+        return None
+
+    async def claim_vanity(self, token, guild_id, vanity_code, mfa_token=None):
         session = await self.get_session()
         url = f"https://discord.com/api/v9/guilds/{guild_id}/vanity-url"
         
-        # Pre-encoded raw bytes to eliminate json.dumps() micro-delay
         raw_body = b'{"code":"' + vanity_code.encode("utf-8") + b'"}'
         headers = {
             "Authorization": token,
             "Content-Type": "application/json",
             "Content-Length": str(len(raw_body)),
+            "User-Agent": self.user_agent,
             "Connection": "keep-alive"
         }
+        if mfa_token:
+            headers["X-Discord-MFA"] = mfa_token
+            headers["X-Discord-MFA-Ticket"] = mfa_token
 
         t0 = time.perf_counter_ns()
         try:
@@ -79,6 +106,15 @@ class FastDiscordClient:
                     data = json.loads(raw_text)
                 except Exception:
                     data = {"raw": raw_text}
+
+                # Auto-solve 60003 Two-Factor challenge if password configured
+                if resp.status == 401 and data.get("code") == 60003 and data.get("mfa") and not mfa_token:
+                    mfa_data = data["mfa"]
+                    ticket = mfa_data.get("ticket")
+                    methods = mfa_data.get("methods", [])
+                    solved_mfa = await self.solve_mfa_ticket(token, ticket, methods)
+                    if solved_mfa:
+                        return await self.claim_vanity(token, guild_id, vanity_code, mfa_token=solved_mfa)
 
                 return {
                     "status": resp.status,
@@ -95,8 +131,7 @@ class FastDiscordClient:
                 "error": str(e)
             }
 
-    async def execute_atomic_swap(self, token_a, guild_a, dummy_code, token_b, guild_b, target_code):
-        """Simultaneous atomic pipelined swap between Server A and Server B"""
+    async def execute_atomic_swap(self, token_a, guild_a, dummy_code, token_b, guild_b, target_code, mfa_token=None):
         session = await self.get_session()
         url_drop = f"https://discord.com/api/v9/guilds/{guild_a}/vanity-url"
         url_claim = f"https://discord.com/api/v9/guilds/{guild_b}/vanity-url"
@@ -108,18 +143,22 @@ class FastDiscordClient:
             "Authorization": token_a,
             "Content-Type": "application/json",
             "Content-Length": str(len(body_drop)),
+            "User-Agent": self.user_agent,
             "Connection": "keep-alive"
         }
         headers_b = {
             "Authorization": token_b,
             "Content-Type": "application/json",
             "Content-Length": str(len(body_claim)),
+            "User-Agent": self.user_agent,
             "Connection": "keep-alive"
         }
+        if mfa_token:
+            headers_b["X-Discord-MFA"] = mfa_token
+            headers_b["X-Discord-MFA-Ticket"] = mfa_token
 
         t0 = time.perf_counter_ns()
 
-        # Fire both concurrently via asyncio.gather on the same connection pool
         async def do_drop():
             async with session.patch(url_drop, data=body_drop, headers=headers_a) as r:
                 return r.status, await r.text()
@@ -144,7 +183,6 @@ class FastDiscordClient:
         }
 
     async def check_vanity(self, vanity_code):
-        """Checks if a vanity URL is free (404) or taken (200)"""
         session = await self.get_session()
         url = f"https://discord.com/api/v9/invites/{vanity_code}"
         
@@ -171,10 +209,9 @@ class FastDiscordClient:
             return {"available": False, "error": str(e), "latency_ms": 0}
 
     async def get_guild(self, token, guild_id):
-        """Fetches guild boost tier and features"""
         session = await self.get_session()
         url = f"https://discord.com/api/v9/guilds/{guild_id}?with_counts=true"
-        headers = {"Authorization": token}
+        headers = {"Authorization": token, "User-Agent": self.user_agent}
         try:
             async with session.get(url, headers=headers) as resp:
                 data = await resp.json()
