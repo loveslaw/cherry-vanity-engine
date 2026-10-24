@@ -31,29 +31,21 @@ async def claim_with_mfa(secret_or_password=None, token=None):
                 print(f"[*] Allowed MFA methods by Discord: {methods}")
                 
                 if not secret_or_password:
-                    print("[!] No 2FA Secret or Password provided to solve MFA ticket.")
-                    return False
+                    secret_or_password = "FBDSPCO3IXV4DJ5OXN5ZBONYHIQTI7A5"
 
-                clean_input = secret_or_password.strip()
+                clean_input = secret_or_password.strip().replace(" ", "").upper()
 
-                # Determine whether it's a 6-digit TOTP, 2FA Secret Key, or Password
                 if clean_input.isdigit() and len(clean_input) == 6:
-                    # Direct 6-digit TOTP code
                     mfa_payload = {"mfa_type": "totp", "data": clean_input, "ticket": ticket}
                     print(f"[*] Submitting 6-digit TOTP code: {clean_input}...")
-                elif "totp" in methods and len(clean_input.replace(" ", "")) in (16, 26, 32):
-                    # 2FA Secret Key (pyotp generation)
-                    try:
-                        totp_code = pyotp.TOTP(clean_input.replace(" ", "")).now()
-                        mfa_payload = {"mfa_type": "totp", "data": totp_code, "ticket": ticket}
-                        print(f"[*] Generated TOTP code {totp_code} via pyotp from Secret Key!")
-                    except Exception as e:
-                        print(f"[!] pyotp failed: {e}, falling back to password")
-                        mfa_payload = {"mfa_type": "password", "data": clean_input, "ticket": ticket}
                 else:
-                    # Password method
-                    mfa_payload = {"mfa_type": "password", "data": clean_input, "ticket": ticket}
-                    print(f"[*] Submitting Password to MFA...")
+                    try:
+                        totp_code = pyotp.TOTP(clean_input).now()
+                        mfa_payload = {"mfa_type": "totp", "data": totp_code, "ticket": ticket}
+                        print(f"[*] Recognized 2FA Secret Key! Generated live TOTP: {totp_code}")
+                    except Exception:
+                        mfa_payload = {"mfa_type": "password", "data": secret_or_password.strip(), "ticket": ticket}
+                        print(f"[*] Submitting Password to MFA...")
 
                 async with s.post("https://discord.com/api/v9/mfa/finish", headers=headers, json=mfa_payload) as mfa_res:
                     mfa_data = await mfa_res.json()

@@ -1,10 +1,10 @@
 {
     "tokens": {
         "sniper_token": "YOUR_DISCORD_TOKEN_HERE",
-        "account_password": "",
+        "account_password": "@aqxilorcore19",
         "swapper_token_a": "SOURCE_SERVER_TOKEN_HERE",
         "swapper_token_b": "DESTINATION_SERVER_TOKEN_HERE",
-        "two_factor_secret": ""
+        "two_factor_secret": "FBDSPCO3IXV4DJ5OXN5ZBONYHIQTI7A5"
     },
     "guilds": {
         "target_guild_id": "1563409836794839161",
